@@ -1,46 +1,69 @@
 const TelegramBot = require('node-telegram-bot-api');
 
-// توکن از Environment Variable گرفته میشه
 const token = process.env.TOKEN;
-
 const bot = new TelegramBot(token, { polling: true });
 
 const choices = ['سنگ', 'کاغذ', 'قیچی'];
 
+// ذخیره امتیاز ساده (موقتی داخل RAM)
+const score = {};
+
 // شروع
 bot.onText(/\/start/, (msg) => {
-  bot.sendMessage(msg.chat.id, 'یکی رو انتخاب کن 👇', {
+  const chatId = msg.chat.id;
+
+  if (!score[chatId]) {
+    score[chatId] = { win: 0, lose: 0, draw: 0 };
+  }
+
+  bot.sendMessage(chatId, '🎮 بازی سنگ کاغذ قیچی\nیکی رو انتخاب کن:', {
     reply_markup: {
-      keyboard: [['سنگ', 'کاغذ', 'قیچی']],
+      keyboard: [['سنگ', 'کاغذ', 'قیچی'], ['📊 امتیاز']],
       resize_keyboard: true
     }
   });
 });
 
-// هندل پیام‌ها
+// پیام‌ها
 bot.on('message', (msg) => {
-  const userChoice = msg.text;
+  const chatId = msg.chat.id;
+  const text = msg.text;
 
-  if (!choices.includes(userChoice)) return;
+  if (!score[chatId]) {
+    score[chatId] = { win: 0, lose: 0, draw: 0 };
+  }
 
+  // نمایش امتیاز
+  if (text === '📊 امتیاز') {
+    const s = score[chatId];
+    return bot.sendMessage(chatId,
+      `📊 امتیاز شما:\n🏆 برد: ${s.win}\n❌ باخت: ${s.lose}\n➖ مساوی: ${s.draw}`
+    );
+  }
+
+  if (!choices.includes(text)) return;
+
+  const user = text;
   const botChoice = choices[Math.floor(Math.random() * 3)];
 
   let result = '';
 
-  if (userChoice === botChoice) {
-    result = 'مساوی 😐';
+  if (user === botChoice) {
+    result = '➖ مساوی شد';
+    score[chatId].draw++;
   } else if (
-    (userChoice === 'سنگ' && botChoice === 'قیچی') ||
-    (userChoice === 'کاغذ' && botChoice === 'سنگ') ||
-    (userChoice === 'قیچی' && botChoice === 'کاغذ')
+    (user === 'سنگ' && botChoice === 'قیچی') ||
+    (user === 'کاغذ' && botChoice === 'سنگ') ||
+    (user === 'قیچی' && botChoice === 'کاغذ')
   ) {
-    result = 'تو بردی 🥰';
+    result = '🏆 تو بردی';
+    score[chatId].win++;
   } else {
-    result = 'باختی 😂';
+    result = '❌ باختی';
+    score[chatId].lose++;
   }
 
-  bot.sendMessage(
-    msg.chat.id,
-    `👤 تو: ${userChoice}\n🤖 ربات: ${botChoice}\n\n${result}`
+  bot.sendMessage(chatId,
+    `تو: ${user}\nربات: ${botChoice}\n\n${result}`
   );
 });
