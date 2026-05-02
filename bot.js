@@ -24,25 +24,22 @@ bot.onText(/\/start/, (msg) => {
   sendMenu(chatId);
 });
 
-// منو اصلی
+// منوی اصلی
 function sendMenu(chatId) {
-  bot.sendMessage(chatId, '🎮 بازی سنگ کاغذ قیچی\nیکی رو انتخاب کن:', {
+  bot.sendMessage(chatId, '🎮 <b>بازی سنگ کاغذ قیچی</b>\nیکی رو انتخاب کن 👇', {
+    parse_mode: "HTML",
     reply_markup: {
       inline_keyboard: [
-        [
-          { text: '🪨 سنگ', callback_data: 'سنگ' },
-          { text: '📄 کاغذ', callback_data: 'کاغذ' },
-          { text: '✂️ قیچی', callback_data: 'قیچی' }
-        ],
-        [
-          { text: '📊 امتیاز', callback_data: 'score' }
-        ]
+        [{ text: "🪨 سنگ", callback_data: "سنگ" }],
+        [{ text: "📄 کاغذ", callback_data: "کاغذ" }],
+        [{ text: "✂️ قیچی", callback_data: "قیچی" }],
+        [{ text: "📊 امتیاز", callback_data: "score" }]
       ]
     }
   });
 }
 
-// کلیک دکمه‌ها
+// هندل کلیک دکمه‌ها
 bot.on('callback_query', (query) => {
   const chatId = query.message.chat.id;
   const data = query.data;
@@ -51,33 +48,34 @@ bot.on('callback_query', (query) => {
     users[chatId] = { win: 0, lose: 0, draw: 0, round: 0 };
   }
 
-  // نمایش امتیاز
+  // 📊 امتیاز
   if (data === 'score') {
     const u = users[chatId];
     bot.answerCallbackQuery(query.id);
 
     return bot.sendMessage(chatId,
-`📊 امتیاز شما:
+`📊 <b>امتیاز شما</b>
 
 🏆 برد: ${u.win}
 ❌ باخت: ${u.lose}
 ➖ مساوی: ${u.draw}
 🎮 راند: ${u.round}`, {
+      parse_mode: "HTML",
       reply_markup: {
         inline_keyboard: [
-          [{ text: '🔙 برگشت', callback_data: 'back' }]
+          [{ text: "🔙 برگشت", callback_data: "back" }]
         ]
       }
     });
   }
 
-  // برگشت
+  // 🔙 برگشت
   if (data === 'back') {
     bot.answerCallbackQuery(query.id);
     return sendMenu(chatId);
   }
 
-  // بازی
+  // 🎮 بازی
   if (choices.includes(data)) {
     const userChoice = data;
     const botChoice = choices[Math.floor(Math.random() * 3)];
@@ -103,27 +101,33 @@ bot.on('callback_query', (query) => {
 
     bot.answerCallbackQuery(query.id);
 
-    // پیام خفن
+    // 🎨 پیام خفن UI
     bot.sendMessage(chatId,
-`🎮 راند ${users[chatId].round}
+`🎮 <b>راند ${users[chatId].round}</b>
 
-👤 تو: ${userChoice}
-🤖 ربات: ${botChoice}
+━━━━━━━━━━━━━━
+👤 <b>تو:</b> ${userChoice}
+🤖 <b>ربات:</b> ${botChoice}
+━━━━━━━━━━━━━━
 
-${result}
+<b>${result}</b>
 
-📊 امتیاز:
-🏆 ${users[chatId].win} | ❌ ${users[chatId].lose} | ➖ ${users[chatId].draw}`, {
+📊 <b>نتایج کلی</b>
+🏆 برد: ${users[chatId].win}
+❌ باخت: ${users[chatId].lose}
+➖ مساوی: ${users[chatId].draw}
+━━━━━━━━━━━━━━`, {
+      parse_mode: "HTML",
       reply_markup: {
         inline_keyboard: [
-          [{ text: '🔁 بازی دوباره', callback_data: 'restart' }],
-          [{ text: '📊 امتیاز', callback_data: 'score' }]
+          [{ text: "🔁 بازی دوباره", callback_data: "restart" }],
+          [{ text: "📊 امتیاز", callback_data: "score" }]
         ]
       }
     });
   }
 
-  // ریست
+  // 🔁 ریست بازی
   if (data === 'restart') {
     users[chatId].round = 0;
     bot.answerCallbackQuery(query.id);
