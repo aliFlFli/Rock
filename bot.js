@@ -34,9 +34,9 @@ bot.on('message', (msg) => {
     (userChoice === 'کاغذ' && botChoice === 'سنگ') ||
     (userChoice === 'قیچی' && botChoice === 'کاغذ')
   ) {
-    result = 'تو بردی 😎';
+    result = 'تو بردی 🥰';
   } else {
-    result = 'باختی 😢';
+    result = 'باختی 😂';
   }
 
   bot.sendMessage(
