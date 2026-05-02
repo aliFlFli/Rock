@@ -5,69 +5,107 @@ const bot = new TelegramBot(token, { polling: true });
 
 const choices = ['سنگ', 'کاغذ', 'قیچی'];
 
-// ذخیره امتیاز
-const score = {};
+// دیتای کاربران
+const users = {};
 
-// شروع بازی
-function sendGame(chatId) {
-  bot.sendMessage(chatId, '🎮 بازی شروع شد!\nیکی رو انتخاب کن:', {
+// شروع
+bot.onText(/\/start/, (msg) => {
+  const chatId = msg.chat.id;
+
+  if (!users[chatId]) {
+    users[chatId] = {
+      win: 0,
+      lose: 0,
+      draw: 0,
+      round: 0
+    };
+  }
+
+  sendMenu(chatId);
+});
+
+// منو اصلی
+function sendMenu(chatId) {
+  bot.sendMessage(chatId, '🎮 بازی سنگ کاغذ قیچی\nیکی رو انتخاب کن:', {
     reply_markup: {
       inline_keyboard: [
         [
           { text: '🪨 سنگ', callback_data: 'سنگ' },
           { text: '📄 کاغذ', callback_data: 'کاغذ' },
           { text: '✂️ قیچی', callback_data: 'قیچی' }
+        ],
+        [
+          { text: '📊 امتیاز', callback_data: 'score' }
         ]
       ]
     }
   });
 }
 
-bot.onText(/\/start/, (msg) => {
-  const chatId = msg.chat.id;
-
-  if (!score[chatId]) {
-    score[chatId] = { win: 0, lose: 0, draw: 0 };
-  }
-
-  sendGame(chatId);
-});
-
-// کلیک روی دکمه‌ها
+// کلیک دکمه‌ها
 bot.on('callback_query', (query) => {
   const chatId = query.message.chat.id;
-  const userChoice = query.data;
+  const data = query.data;
 
-  if (!score[chatId]) {
-    score[chatId] = { win: 0, lose: 0, draw: 0 };
+  if (!users[chatId]) {
+    users[chatId] = { win: 0, lose: 0, draw: 0, round: 0 };
   }
 
-  const botChoice = choices[Math.floor(Math.random() * 3)];
+  // نمایش امتیاز
+  if (data === 'score') {
+    const u = users[chatId];
+    bot.answerCallbackQuery(query.id);
 
-  let result = '';
+    return bot.sendMessage(chatId,
+`📊 امتیاز شما:
 
-  if (userChoice === botChoice) {
-    result = '➖ مساوی شد';
-    score[chatId].draw++;
-  } else if (
-    (userChoice === 'سنگ' && botChoice === 'قیچی') ||
-    (userChoice === 'کاغذ' && botChoice === 'سنگ') ||
-    (userChoice === 'قیچی' && botChoice === 'کاغذ')
-  ) {
-    result = '🏆 تو بردی';
-    score[chatId].win++;
-  } else {
-    result = '❌ باختی';
-    score[chatId].lose++;
+🏆 برد: ${u.win}
+❌ باخت: ${u.lose}
+➖ مساوی: ${u.draw}
+🎮 راند: ${u.round}`, {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🔙 برگشت', callback_data: 'back' }]
+        ]
+      }
+    });
   }
 
-  const s = score[chatId];
+  // برگشت
+  if (data === 'back') {
+    bot.answerCallbackQuery(query.id);
+    return sendMenu(chatId);
+  }
 
-  bot.answerCallbackQuery(query.id);
+  // بازی
+  if (choices.includes(data)) {
+    const userChoice = data;
+    const botChoice = choices[Math.floor(Math.random() * 3)];
 
-  // پیام خفن
-  bot.sendMessage(chatId,
-`🎮 نتیجه بازی
+    let result = '';
+
+    if (userChoice === botChoice) {
+      result = '➖ مساوی شد';
+      users[chatId].draw++;
+    } else if (
+      (userChoice === 'سنگ' && botChoice === 'قیچی') ||
+      (userChoice === 'کاغذ' && botChoice === 'سنگ') ||
+      (userChoice === 'قیچی' && botChoice === 'کاغذ')
+    ) {
+      result = '🏆 تو بردی';
+      users[chatId].win++;
+    } else {
+      result = '❌ باختی';
+      users[chatId].lose++;
+    }
+
+    users[chatId].round++;
+
+    bot.answerCallbackQuery(query.id);
+
+    // پیام خفن
+    bot.sendMessage(chatId,
+`🎮 راند ${users[chatId].round}
 
 👤 تو: ${userChoice}
 🤖 ربات: ${botChoice}
@@ -75,23 +113,20 @@ bot.on('callback_query', (query) => {
 ${result}
 
 📊 امتیاز:
-🏆 برد: ${s.win}
-❌ باخت: ${s.lose}
-➖ مساوی: ${s.draw}`, {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '🔁 دوباره بازی کن', callback_data: 'RESTART' }]
-      ]
-    }
-  });
-});
+🏆 ${users[chatId].win} | ❌ ${users[chatId].lose} | ➖ ${users[chatId].draw}`, {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🔁 بازی دوباره', callback_data: 'restart' }],
+          [{ text: '📊 امتیاز', callback_data: 'score' }]
+        ]
+      }
+    });
+  }
 
-// دکمه ریست
-bot.on('callback_query', (query) => {
-  const chatId = query.message.chat.id;
-
-  if (query.data === 'RESTART') {
+  // ریست
+  if (data === 'restart') {
+    users[chatId].round = 0;
     bot.answerCallbackQuery(query.id);
-    sendGame(chatId);
+    sendMenu(chatId);
   }
 });
