@@ -5,65 +5,45 @@ const bot = new TelegramBot(token, { polling: true });
 
 const choices = ['سنگ', 'کاغذ', 'قیچی'];
 
-// ذخیره امتیاز ساده (موقتی داخل RAM)
-const score = {};
-
 // شروع
 bot.onText(/\/start/, (msg) => {
-  const chatId = msg.chat.id;
-
-  if (!score[chatId]) {
-    score[chatId] = { win: 0, lose: 0, draw: 0 };
-  }
-
-  bot.sendMessage(chatId, '🎮 بازی سنگ کاغذ قیچی\nیکی رو انتخاب کن:', {
+  bot.sendMessage(msg.chat.id, '🎮 یکی رو انتخاب کن:', {
     reply_markup: {
-      keyboard: [['سنگ', 'کاغذ', 'قیچی'], ['📊 امتیاز']],
-      resize_keyboard: true
+      inline_keyboard: [
+        [
+          { text: '🪨 سنگ', callback_data: 'سنگ' },
+          { text: '📄 کاغذ', callback_data: 'کاغذ' },
+          { text: '✂️ قیچی', callback_data: 'قیچی' }
+        ]
+      ]
     }
   });
 });
 
-// پیام‌ها
-bot.on('message', (msg) => {
-  const chatId = msg.chat.id;
-  const text = msg.text;
+// کلیک روی دکمه‌ها
+bot.on('callback_query', (query) => {
+  const userChoice = query.data;
+  const chatId = query.message.chat.id;
 
-  if (!score[chatId]) {
-    score[chatId] = { win: 0, lose: 0, draw: 0 };
-  }
-
-  // نمایش امتیاز
-  if (text === '📊 امتیاز') {
-    const s = score[chatId];
-    return bot.sendMessage(chatId,
-      `📊 امتیاز شما:\n🏆 برد: ${s.win}\n❌ باخت: ${s.lose}\n➖ مساوی: ${s.draw}`
-    );
-  }
-
-  if (!choices.includes(text)) return;
-
-  const user = text;
   const botChoice = choices[Math.floor(Math.random() * 3)];
 
   let result = '';
 
-  if (user === botChoice) {
+  if (userChoice === botChoice) {
     result = '➖ مساوی شد';
-    score[chatId].draw++;
   } else if (
-    (user === 'سنگ' && botChoice === 'قیچی') ||
-    (user === 'کاغذ' && botChoice === 'سنگ') ||
-    (user === 'قیچی' && botChoice === 'کاغذ')
+    (userChoice === 'سنگ' && botChoice === 'قیچی') ||
+    (userChoice === 'کاغذ' && botChoice === 'سنگ') ||
+    (userChoice === 'قیچی' && botChoice === 'کاغذ')
   ) {
     result = '🏆 تو بردی';
-    score[chatId].win++;
   } else {
     result = '❌ باختی';
-    score[chatId].lose++;
   }
 
+  bot.answerCallbackQuery(query.id);
+
   bot.sendMessage(chatId,
-    `تو: ${user}\nربات: ${botChoice}\n\n${result}`
+    `تو: ${userChoice}\nربات: ${botChoice}\n\n${result}`
   );
 });
